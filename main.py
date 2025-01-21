@@ -18,6 +18,7 @@ uri = base64.b64decode("d3NzOi8vcHVtcHBvcnRhbC5mdW4vYXBpL2RhdGE=").decode("utf-8
 
 def execute_trade(data, amount, use_sol):
     payload = {
+        "publicKey": WALLET_PUBLIC_KEY,
         "action": "buy",  # "buy" or "sell"
         "mint": data["mint"],  # contract address of the token you want to trade
         "amount": amount,  # amount of SOL or tokens to trade
@@ -27,7 +28,6 @@ def execute_trade(data, amount, use_sol):
         "pool": "pump"  # exchange to trade on. "pump" or "raydium"
     }
     response = requests.post(url, data=payload)
-
     keypair = Keypair.from_base58_string(WALLET_PRIVATE_KEY)
     tx = VersionedTransaction(VersionedTransaction.from_bytes(response.content).message, [keypair])
 
