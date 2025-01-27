@@ -9,14 +9,18 @@ from solders.commitment_config import CommitmentLevel
 from solders.rpc.requests import SendVersionedTransaction
 from solders.rpc.config import RpcSendTransactionConfig
 
-
-WALLET_PUBLIC_KEY = ""
-WALLET_PRIVATE_KEY = ""
+WALLET_PUBLIC_KEY = "xxx"
+WALLET_PRIVATE_KEY = "xxx"
 url = base64.b64decode("aHR0cHM6Ly9wdW1wcG9ydGFsLmZ1bi9hcGkvdHJhZGUtbG9jYWw=").decode("utf-8")
 uri = base64.b64decode("d3NzOi8vcHVtcHBvcnRhbC5mdW4vYXBpL2RhdGE=").decode("utf-8")
 
 
 def execute_trade(data, amount, use_sol):
+    print("Starting trade execution...")
+    print(f"Input data: {data}")
+    print(f"Trade amount: {amount}")
+    print(f"Denominated in SOL: {'true' if use_sol else 'false'}")
+
     payload = {
         "publicKey": WALLET_PUBLIC_KEY,
         "action": "buy",  # "buy" or "sell"
@@ -27,21 +31,42 @@ def execute_trade(data, amount, use_sol):
         "priorityFee": 0.005,  # amount used to enhance transaction speed
         "pool": "pump"  # exchange to trade on. "pump" or "raydium"
     }
+    print(f"Payload for initial request: {payload}")
+
     response = requests.post(url, data=payload)
-    keypair = Keypair.from_base58_string(WALLET_PRIVATE_KEY)
-    tx = VersionedTransaction(VersionedTransaction.from_bytes(response.content).message, [keypair])
+    print(f"Response from initial request: {response.status_code} - {response.text}")
 
-    commitment = CommitmentLevel.Confirmed
-    config = RpcSendTransactionConfig(preflight_commitment=commitment)
-    txPayload = SendVersionedTransaction(tx, config).to_json()
+    try:
+        keypair = Keypair.from_base58_string(WALLET_PRIVATE_KEY)
+        print("Keypair successfully created.")
 
-    response = requests.post(
-        url="Your RPC Endpoint here - Eg: https://api.mainnet-beta.solana.com/",
-        headers={"Content-Type": "application/json"},
-        data=txPayload
-    )
-    txSignature = response.json()['result']
-    print(f'Transaction: https://solscan.io/tx/{txSignature}')
+        tx = VersionedTransaction(VersionedTransaction.from_bytes(response.content).message, [keypair])
+        print("Transaction object created.")
+
+        commitment = CommitmentLevel.Confirmed
+        config = RpcSendTransactionConfig(skip_preflight=True)
+        txPayload = SendVersionedTransaction(tx, config).to_json()
+        print(f"Transaction payload: {txPayload}")
+
+        response = requests.post(
+            url="xxx",
+            headers={"Content-Type": "application/json"},
+            data=txPayload
+        )
+        print(f"Response from RPC endpoint: {response.status_code} - {response.text}")
+
+        response_data = response.json()
+        print(f"Response JSON: {response_data}")
+
+        txSignature = response_data.get("result")
+        if txSignature is not None:
+            print(f'Transaction successful: https://solscan.io/tx/{txSignature}')
+        else:
+            print("Transaction failed or incomplete.")
+            print(response_data)
+    except Exception as e:
+        print("An error occurred during trade execution:")
+        print(str(e))
 
 
 async def subscribe_and_listen():
